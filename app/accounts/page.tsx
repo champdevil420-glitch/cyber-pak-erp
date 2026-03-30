@@ -1,17 +1,16 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { ArrowDownLeft, ArrowUpRight, Package, Truck, Database } from "lucide-react";
 
-// Standardizing the Data Shape
 interface Entry {
   id: number;
   date: string;
   desc: string;
   amount: number; 
-  originalAmount?: number;
   currency: string;
   type: "Debit" | "Credit";
+  movement: "Inward" | "Outward" | "None"; // New Field
   account: string;
-  isTaxable: boolean;
 }
 
 export default function GlobalAccountingSuite() {
@@ -19,15 +18,10 @@ export default function GlobalAccountingSuite() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [mounted, setMounted] = useState(false);
   
-  const exchangeRate = { USD: 278.50, EUR: 301.20 };
-  const taxRate = 18;
-
   const [desc, setDesc] = useState("");
   const [amt, setAmt] = useState("");
-  const [curr, setCurr] = useState("PKR");
-  const [acc, setAcc] = useState("Cash");
-  const [type, setType] = useState<"Debit" | "Credit">("Debit");
-  const [isTax, setIsTax] = useState(false);
+  const [move, setMove] = useState<"Inward" | "Outward" | "None">("None");
+  const [acc, setAcc] = useState("Inventory");
 
   useEffect(() => {
     setMounted(true);
@@ -38,106 +32,100 @@ export default function GlobalAccountingSuite() {
   const addEntry = (e: React.FormEvent) => {
     e.preventDefault();
     if (!desc || !amt) return;
-    
-    const rawAmt = parseFloat(amt);
-    let pkrValue = rawAmt;
-    if (curr === "USD") pkrValue = rawAmt * exchangeRate.USD;
-    if (curr === "EUR") pkrValue = rawAmt * exchangeRate.EUR;
 
     const newEntry: Entry = {
       id: Date.now(),
       date: new Date().toLocaleDateString('en-GB'),
       desc,
-      amount: pkrValue,
-      originalAmount: rawAmt,
-      currency: curr,
-      type,
+      amount: parseFloat(amt),
+      currency: "PKR",
+      type: move === "Inward" ? "Debit" : "Credit",
+      movement: move,
       account: acc,
-      isTaxable: isTax
     };
 
     const updated = [newEntry, ...entries];
     setEntries(updated);
     localStorage.setItem("cyberPak_enterprise_acc", JSON.stringify(updated));
-    setDesc(""); setAmt(""); setIsTax(false);
+    setDesc(""); setAmt(""); setMove("None");
   };
 
   if (!mounted) return null;
 
+  // Inventory Logic
+  const totalInward = entries.filter(e => e.movement === "Inward").reduce((a, b) => a + b.amount, 0);
+  const totalOutward = entries.filter(e => e.movement === "Outward").reduce((a, b) => a + b.amount, 0);
+
   return (
     <div className="p-6 md:p-10 min-h-screen bg-black text-white font-mono">
-      {/* Header Stats */}
-      <div className="flex flex-wrap gap-4 mb-8 bg-zinc-900 border border-zinc-800 p-4 rounded-xl items-center justify-between">
-        <div className="flex gap-6 items-center">
-            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Rate: <span className="text-white">$1 = {exchangeRate.USD} PKR</span>
+      
+      {/* 📊 Stock Movement Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        <div className="bg-zinc-900 border border-emerald-500/20 p-6 rounded-2xl">
+            <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Inward (Stock In)</span>
+                <ArrowDownLeft className="text-emerald-500" size={18} />
             </div>
-            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-l border-zinc-800 pl-6">
-                GST: <span className="text-white">{taxRate}%</span>
-            </div>
+            <p className="text-2xl font-black italic">Rs. {totalInward.toLocaleString()}</p>
         </div>
-        <div className="flex gap-2">
-            {["journal", "tax"].map(t => (
-                <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeTab === t ? "bg-white text-black" : "text-zinc-500 hover:bg-zinc-800"}`}>
-                    {t}
-                </button>
-            ))}
+        <div className="bg-zinc-900 border border-red-500/20 p-6 rounded-2xl">
+            <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Outward (Stock Out)</span>
+                <ArrowUpRight className="text-red-500" size={18} />
+            </div>
+            <p className="text-2xl font-black italic">Rs. {totalOutward.toLocaleString()}</p>
+        </div>
+        <div className="bg-zinc-900 border border-blue-500/20 p-6 rounded-2xl">
+            <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Net Inventory Value</span>
+                <Package className="text-blue-500" size={18} />
+            </div>
+            <p className="text-2xl font-black italic text-blue-400">Rs. {(totalInward - totalOutward).toLocaleString()}</p>
         </div>
       </div>
 
-      {activeTab === "journal" && (
-        <div className="space-y-8">
-          <form onSubmit={addEntry} className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-              <div className="md:col-span-1">
-                <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Description</label>
-                <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Export Order" className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-xs outline-none focus:border-emerald-500" />
-              </div>
-              <div>
-                <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Value & Currency</label>
-                <div className="flex bg-black border border-zinc-800 rounded-lg overflow-hidden">
-                    <input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0" className="w-full bg-transparent p-3 text-xs outline-none font-bold" />
-                    <select value={curr} onChange={(e) => setCurr(e.target.value)} className="bg-zinc-800 text-[10px] p-2 outline-none">
-                        <option value="PKR">PKR</option>
-                        <option value="USD">USD</option>
-                    </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Ledger Account</label>
-                <select value={acc} onChange={(e) => setAcc(e.target.value)} className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-xs outline-none">
-                  <option value="Cash">Cash</option>
-                  <option value="Inventory">Inventory</option>
-                  <option value="Revenue">Revenue</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Tax</label>
-                <button type="button" onClick={() => setIsTax(!isTax)} className={`w-full p-3 rounded-lg border text-[10px] font-bold uppercase ${isTax ? "border-amber-500 text-amber-500" : "border-zinc-800 text-zinc-600"}`}>
-                    {isTax ? "Tax ON" : "No Tax"}
-                </button>
-              </div>
-              <button type="submit" className="bg-emerald-600 text-white p-3 rounded-lg font-bold uppercase text-[10px] hover:bg-emerald-500 transition-all">Post Entry</button>
-            </div>
-          </form>
-
-          {/* List of Entries */}
-          <div className="space-y-2">
-             {entries.map(e => (
-               <div key={e.id} className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-xl border border-zinc-800 hover:border-emerald-500/50 transition-all">
-                  <div>
-                        <p className="text-xs font-bold uppercase">{e.desc}</p>
-                        <p className="text-[8px] text-zinc-600 uppercase">{e.date} // {e.account} {e.currency !== "PKR" && `(Fixed: ${e.originalAmount} ${e.currency})`}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold">Rs. {e.amount.toLocaleString()}</p>
-                    {e.isTaxable && <p className="text-[7px] font-bold text-amber-500 uppercase">FBR GST Ready</p>}
-                  </div>
-               </div>
-             ))}
+      {/* 📝 Entry Form */}
+      <form onSubmit={addEntry} className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Item/Order Description</label>
+            <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="e.g. Leather Shipment" className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-xs outline-none focus:border-blue-500" />
           </div>
+          <div>
+            <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Value (PKR)</label>
+            <input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0.00" className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-xs outline-none" />
+          </div>
+          <div>
+            <label className="text-[8px] font-bold text-zinc-500 uppercase mb-2 block">Movement Type</label>
+            <select value={move} onChange={(e) => setMove(e.target.value as any)} className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-xs outline-none">
+              <option value="None">Finance Only</option>
+              <option value="Inward">Inward (Purchase/Return)</option>
+              <option value="Outward">Outward (Sale/Dispatch)</option>
+            </select>
+          </div>
+          <button type="submit" className="bg-white text-black p-3 rounded-lg font-bold uppercase text-[10px] hover:bg-zinc-200 transition-all">Record Movement</button>
         </div>
-      )}
+      </form>
+
+      {/* 📋 Live Movement Ledger */}
+      <div className="space-y-2">
+         {entries.map(e => (
+           <div key={e.id} className="flex items-center justify-between p-4 bg-zinc-900/20 rounded-xl border border-zinc-800">
+              <div className="flex gap-4 items-center">
+                    <div className={`p-2 rounded-lg ${e.movement === "Inward" ? "bg-emerald-500/10 text-emerald-500" : e.movement === "Outward" ? "bg-red-500/10 text-red-500" : "bg-zinc-800 text-zinc-400"}`}>
+                        {e.movement === "Inward" ? <Truck size={16}/> : e.movement === "Outward" ? <Database size={16}/> : <Package size={16}/>}
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold uppercase">{e.desc}</p>
+                        <p className="text-[8px] text-zinc-600 uppercase">{e.date} // {e.movement || "Financial Record"}</p>
+                    </div>
+              </div>
+              <p className={`text-sm font-bold ${e.movement === "Inward" ? "text-emerald-500" : "text-red-500"}`}>
+                {e.movement === "Inward" ? "+" : "-"} Rs. {e.amount.toLocaleString()}
+              </p>
+           </div>
+         ))}
+      </div>
     </div>
   );
 }
