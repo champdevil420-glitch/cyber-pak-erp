@@ -1,117 +1,76 @@
-"use client";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
 import { 
-  LayoutDashboard, Zap, Fingerprint, Factory, 
-  Contact2, ShieldAlert, BookOpen, FolderLock, 
-  FileText, Bell, Globe2, LucideIcon
+  LayoutDashboard, 
+  Database, 
+  FolderLock, 
+  Settings, 
+  ShieldCheck 
 } from "lucide-react";
 
-// Explicitly define what a Link looks like to stop the 6 red errors
-interface NavLink {
-  name: string;
-  href: string;
-  icon: LucideIcon;
-  alert?: string;
-  special?: boolean;
-  root?: boolean;
-}
+const inter = Inter({ subsets: ["latin"] });
 
-interface NavGroup {
-  label: string;
-  links: NavLink[];
-}
+export const metadata: Metadata = {
+  title: "Cyber-Pak ERP | Executive Node",
+  description: "Advanced Export & Financial Management",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const [config, setConfig] = useState({
-    siteName: "CYBER-PAK ERP",
-    primaryColor: "#10b981",
-    accentColor: "#22d3ee"
-  });
-
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("cyberPakConfig");
-    if (saved) {
-      try { setConfig(JSON.parse(saved)); } catch (e) { console.error(e); }
-    }
-  }, []);
-
-  const navGroups: NavGroup[] = [
-    {
-      label: "Intelligence",
-      links: [
-        { name: "Neural Pulse", href: "/notifications", icon: Bell, alert: "3", special: true },
-        { name: "Command Center", href: "/", icon: LayoutDashboard },
-      ]
-    },
-    {
-      label: "Operations",
-      links: [
-        { name: "Production", href: "/production", icon: Factory },
-        { name: "Doc Vault", href: "/documents", icon: FolderLock },
-        { name: "Invoice Gen", href: "/invoices", icon: FileText },
-      ]
-    },
-    {
-      label: "Supply Chain",
-      links: [
-        { name: "Shipment Track", href: "/logistics", icon: Globe2 },
-        { name: "Client CRM", href: "/crm", icon: Contact2 },
-      ]
-    },
-    {
-      label: "Administration",
-      links: [
-        { name: "HR Control", href: "/hr", icon: Fingerprint },
-        { name: "Journal Ledger", href: "/accounts", icon: BookOpen },
-        { name: "Super Admin", href: "/admin", icon: ShieldAlert, root: true },
-      ]
-    }
-  ];
-
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body className="bg-black font-mono flex h-screen overflow-hidden">
-        <nav className="w-64 border-r border-white/5 p-6 flex flex-col bg-[#050505] h-full sticky top-0 z-50 shadow-2xl">
-          <div className="flex items-center gap-3 mb-10 shrink-0">
-            <div className="p-2 bg-white/5 rounded-lg border" style={{ borderColor: `${config.primaryColor}44` }}>
-              <Zap style={{ color: config.accentColor }} className="animate-pulse" size={20} />
+      <body className={`${inter.className} bg-black text-white flex min-h-screen overflow-x-hidden`}>
+        
+        {/* --- DESKTOP SIDEBAR --- */}
+        <aside className="hidden md:flex w-64 bg-[#050505] border-r border-zinc-900 flex-col p-6 sticky top-0 h-screen">
+          <div className="flex items-center gap-3 mb-12 px-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <ShieldCheck size={20} className="text-white" />
             </div>
-            <div className="flex flex-col text-white font-black italic tracking-tighter text-xl uppercase leading-none">
-              {config.siteName}
+            <h1 className="font-black italic text-sm tracking-tighter uppercase">Cyber-Pak <span className="text-blue-500">Node</span></h1>
+          </div>
+
+          <nav className="space-y-2 flex-1">
+            <Link href="/accounts" className="flex items-center gap-4 p-3 rounded-xl hover:bg-zinc-900 transition-all group">
+              <Database size={18} className="text-zinc-500 group-hover:text-emerald-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Financials</span>
+            </Link>
+            <Link href="/vault" className="flex items-center gap-4 p-3 rounded-xl hover:bg-zinc-900 transition-all group">
+              <FolderLock size={18} className="text-zinc-500 group-hover:text-blue-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Tech Vault</span>
+            </Link>
+          </nav>
+
+          <div className="mt-auto border-t border-zinc-900 pt-6 px-2">
+            <div className="flex items-center gap-3 opacity-50 grayscale">
+              <div className="w-6 h-6 rounded-full bg-zinc-800"></div>
+              <span className="text-[9px] font-bold uppercase tracking-widest">Sialkot HQ</span>
             </div>
           </div>
-          
-          <div className="flex-1 flex flex-col gap-6 text-[10px] font-black uppercase tracking-[0.12em] overflow-y-auto no-scrollbar pr-2">
-            {navGroups.map((group, gIdx) => (
-              <div key={gIdx}>
-                <p className="text-[8px] text-slate-800 mb-2 font-bold border-b border-slate-900 pb-1 italic uppercase tracking-widest">{group.label}</p>
-                <div className="flex flex-col gap-1">
-                  {group.links.map((link, lIdx) => {
-                    const Icon = link.icon;
-                    return (
-                      <Link key={lIdx} href={link.href} className={`flex items-center justify-between p-2 rounded-lg transition-all ${link.special ? 'bg-red-600/5 text-red-500 border border-red-600/10' : link.root ? 'bg-white/5 border border-white/10 text-white hover:bg-red-600' : 'hover:bg-white/5 hover:text-white text-slate-400'}`}>
-                        <div className="flex items-center gap-3">
-                          <Icon size={16} style={!link.special && !link.root ? { color: config.primaryColor } : {}} /> 
-                          <span>{link.name}</span>
-                        </div>
-                        {link.alert && mounted && <span className="bg-red-600 text-white text-[7px] px-1.5 py-0.5 rounded-full">{link.alert}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+        </aside>
+
+        {/* --- MOBILE NAVIGATION (Bottom Bar) --- */}
+        <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-zinc-900/90 backdrop-blur-xl border border-white/10 h-16 rounded-2xl flex items-center justify-around px-6 z-50">
+          <Link href="/accounts" className="flex flex-col items-center gap-1">
+            <Database size={20} className="text-emerald-500" />
+            <span className="text-[8px] font-black uppercase">Money</span>
+          </Link>
+          <Link href="/vault" className="flex flex-col items-center gap-1">
+            <FolderLock size={20} className="text-blue-500" />
+            <span className="text-[8px] font-black uppercase">Vault</span>
+          </Link>
         </nav>
 
-        <main className="flex-1 bg-[#020202] overflow-y-auto h-screen relative">
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-50 bg-[length:100%_2px,3px_100%]" />
-            <div className="relative z-10">{mounted ? children : null}</div>
+        {/* --- MAIN CONTENT AREA --- */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
         </main>
+
       </body>
     </html>
   );
