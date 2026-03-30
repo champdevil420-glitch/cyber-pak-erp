@@ -1,89 +1,157 @@
 "use client";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  LayoutDashboard, Factory, FolderLock, Users, 
-  Scale, Receipt, Truck, ShieldCheck, Wallet, Activity
+  LayoutDashboard, Zap, Fingerprint, Factory, 
+  Contact2, ShieldAlert, BookOpen, FolderLock, 
+  FileText, Bell, Globe2, LucideIcon,
+  Wallet, Scale, Activity, Search
 } from "lucide-react";
 
-const inter = Inter({ subsets: ["latin"] });
+// Types for the Navigation
+interface NavLink {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  alert?: string;
+  special?: boolean;
+  root?: boolean;
+}
+
+interface NavGroup {
+  label: string;
+  links: NavLink[];
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  const [config, setConfig] = useState({
+    siteName: "CYBER-PAK ERP",
+    primaryColor: "#10b981", // Emerald
+    accentColor: "#22d3ee"   // Cyan
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("cyberPakConfig");
+    if (saved) {
+      try { setConfig(JSON.parse(saved)); } catch (e) { console.error(e); }
+    }
+  }, []);
+
+  const navGroups: NavGroup[] = [
+    {
+      label: "Intelligence",
+      links: [
+        { name: "Neural Pulse", href: "/notifications", icon: Bell, alert: "3", special: true },
+        { name: "Command Center", href: "/", icon: LayoutDashboard },
+      ]
+    },
+    {
+      label: "Operations",
+      links: [
+        { name: "Production", href: "/production", icon: Factory },
+        { name: "Doc Vault", href: "/vault", icon: FolderLock },
+        { name: "Invoice Gen", href: "/invoices", icon: FileText },
+      ]
+    },
+    {
+      label: "Supply Chain",
+      links: [
+        { name: "Shipment Track", href: "/logistics", icon: Globe2 },
+        { name: "Client CRM", href: "/crm", icon: Contact2 },
+      ]
+    },
+    {
+      label: "Administration",
+      links: [
+        { name: "HR Control", href: "/hr", icon: Fingerprint },
+        { name: "Payroll System", href: "/payroll", icon: Wallet },
+        { name: "Journal Ledger", href: "/accounts", icon: BookOpen },
+        { name: "Trial Balance", href: "/trial-balance", icon: Scale },
+        { name: "Super Admin", href: "/admin", icon: ShieldAlert, root: true },
+      ]
+    }
+  ];
+
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black text-white flex min-h-screen overflow-hidden`}>
+      <body className="bg-black font-mono flex h-screen overflow-hidden text-white">
         
-        {/* --- STABLE SIDEBAR --- */}
-        <aside className="hidden md:flex w-64 bg-[#080808] border-r border-zinc-900 flex-col h-screen sticky top-0">
+        {/* --- THE PRO SIDEBAR --- */}
+        <nav className="w-64 border-r border-white/5 p-6 flex flex-col bg-[#050505] h-full sticky top-0 z-50 shadow-2xl">
+          <div className="flex items-center gap-3 mb-10 shrink-0">
+            <div className="p-2 bg-white/5 rounded-lg border" style={{ borderColor: `${config.primaryColor}44` }}>
+              <Zap style={{ color: config.accentColor }} className="animate-pulse" size={20} />
+            </div>
+            <div className="flex flex-col font-black italic tracking-tighter text-xl uppercase leading-none">
+              {config.siteName}
+            </div>
+          </div>
           
-          <div className="p-8 flex items-center gap-3 border-b border-zinc-900/50">
-            <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center">
-              <ShieldCheck size={18} />
-            </div>
-            <h1 className="font-black uppercase italic text-[10px] tracking-tighter">Cyber-Pak ERP</h1>
+          <div className="flex-1 flex flex-col gap-6 text-[10px] font-black uppercase tracking-[0.12em] overflow-y-auto no-scrollbar pr-2">
+            {navGroups.map((group, gIdx) => (
+              <div key={gIdx}>
+                <p className="text-[8px] text-zinc-600 mb-2 font-bold border-b border-zinc-900 pb-1 italic uppercase tracking-widest">
+                  {group.label}
+                </p>
+                <div className="flex flex-col gap-1">
+                  {group.links.map((link, lIdx) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link 
+                        key={lIdx} 
+                        href={link.href} 
+                        className={`flex items-center justify-between p-2.5 rounded-lg transition-all 
+                          ${link.special ? 'bg-red-600/5 text-red-500 border border-red-600/10' : 
+                            link.root ? 'bg-white/5 border border-white/10 text-white hover:bg-red-600' : 
+                            'hover:bg-white/5 hover:text-white text-zinc-500'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon size={16} style={!link.special && !link.root ? { color: config.primaryColor } : {}} /> 
+                          <span>{link.name}</span>
+                        </div>
+                        {link.alert && mounted && (
+                          <span className="bg-red-600 text-white text-[7px] px-1.5 py-0.5 rounded-full animate-pulse">
+                            {link.alert}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
-          <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="mt-auto pt-4 border-t border-white/5 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+            <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest">Node: Sialkot-01</span>
+          </div>
+        </nav>
+
+        {/* --- MAIN CONTENT AREA --- */}
+        <main className="flex-1 bg-[#020202] overflow-y-auto h-screen relative">
+            {/* Top Bar for Professional Look */}
+            <header className="h-16 border-b border-white/5 sticky top-0 bg-black/50 backdrop-blur-md z-40 flex items-center justify-between px-10">
+               <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 px-4 py-1.5 rounded-lg">
+                  <Search size={14} className="text-zinc-600" />
+                  <input placeholder="ENTER COMMAND..." className="bg-transparent outline-none text-[9px] font-black uppercase w-32 text-zinc-400" />
+               </div>
+               <div className="flex items-center gap-4">
+                  <Activity size={14} className="text-emerald-500" />
+                  <div className="text-[8px] font-black text-zinc-600 uppercase">System Integrity: 100%</div>
+               </div>
+            </header>
+
+            {/* CRT Effect Overlay */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.02] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-50 bg-[length:100%_2px,3px_100%]" />
             
-            {/* SECTION 1 */}
-            <div>
-              <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-3 px-2">Financial Control</p>
-              <div className="space-y-1">
-                <Link href="/accounts" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all">
-                  <Receipt size={14} className="text-emerald-500" /> Journal Ledger
-                </Link>
-                <Link href="/trial-balance" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all">
-                  <Scale size={14} className="text-blue-500" /> Trial Balance
-                </Link>
-              </div>
+            <div className="relative z-10 p-8">
+              {mounted ? children : null}
             </div>
-
-            {/* SECTION 2 */}
-            <div>
-              <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-3 px-2">Production & Vault</p>
-              <div className="space-y-1">
-                <Link href="/production" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all">
-                  <Factory size={14} className="text-purple-500" /> Production Line
-                </Link>
-                <Link href="/vault" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all">
-                  <FolderLock size={14} className="text-cyan-500" /> Tech Vault
-                </Link>
-                <Link href="/logistics" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all">
-                  <Truck size={14} className="text-yellow-500" /> Logistics
-                </Link>
-              </div>
-            </div>
-
-            {/* SECTION 3 */}
-            <div>
-              <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-3 px-2">Human Resources</p>
-              <div className="space-y-1">
-                <Link href="/hr" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all">
-                  <Users size={14} className="text-orange-500" /> Employees
-                </Link>
-                <Link href="/payroll" className="flex items-center gap-3 p-2 text-[10px] font-bold uppercase hover:bg-zinc-900 rounded-lg transition-all text-emerald-400">
-                  <Wallet size={14} /> Payroll System
-                </Link>
-              </div>
-            </div>
-
-          </nav>
-
-          <div className="p-6 border-t border-zinc-900">
-             <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[8px] font-bold text-zinc-600 uppercase">System Active</span>
-             </div>
-          </div>
-        </aside>
-
-        {/* --- MAIN AREA --- */}
-        <main className="flex-1 h-screen overflow-y-auto bg-black">
-          {children}
         </main>
-
       </body>
     </html>
   );
